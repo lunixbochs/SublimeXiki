@@ -1,0 +1,9 @@
+[
+/*
+	{
+		"button": "button1", "count": 2,
+		"command": "xiki_click",
+		"context": [{"key": "setting.xiki"}]
+	}
+*/
+]

@@ -1,0 +1,3 @@
+[
+	{ "keys": ["super+enter"], "command": "xiki", "context": [{ "key": "setting.xiki" }]}
+]

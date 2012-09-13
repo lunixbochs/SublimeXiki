@@ -1,0 +1,10 @@
+[
+    {
+        "caption": "Xiki at Cursor",
+        "command": "xiki"
+    },
+    {
+        "caption": "Create Xiki Buffer",
+        "command": "new_xiki"
+    }
+]
