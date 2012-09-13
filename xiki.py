@@ -26,8 +26,13 @@ def xiki(view):
 			view.end_edit(edit)
 			return
 
-		cmd = ['ruby', which('xiki')] + tree.split(' ')
-		print cmd
+		if which('ruby'):
+			print 'using ruby from PATH:', which('ruby')
+			cmd = ['ruby', which('xiki')]
+		else:
+			cmd = ['xiki']
+
+		cmd += tree.split(' ')
 		output = communicate(cmd)
 		if output:
 			insert(view, output, indent + '\t')
