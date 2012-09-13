@@ -27,6 +27,7 @@ def xiki(view):
 			return
 
 		cmd = ['ruby', which('xiki')] + tree.split(' ')
+		print cmd
 		output = communicate(cmd)
 		if output:
 			insert(view, output, indent + '\t')

@@ -57,19 +57,12 @@ def create_environment():
 
 def which(cmd, env=None):
 	if env is None:
-		print 'recreating env'
 		env = create_environment()
 
-	print env
-	print create_environment()
-
-	if env and 'PATH' in env:
-		for path in env['PATH'].split(':'):
-			full = os.path.join(path, cmd)
-			if os.path.isfile(full) and os.access(full, os.X_OK):
-				return full
-	else:
-		print 'no env?'
+	for path in env['PATH'].split(':'):
+		full = os.path.join(path, cmd)
+		if os.path.isfile(full) and os.access(full, os.X_OK):
+			return full
 
 # popen methods
 def communicate(cmd, stdin=None):
