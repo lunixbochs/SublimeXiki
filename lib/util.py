@@ -66,7 +66,7 @@ def which(cmd, env=None):
 	if env and 'PATH' in env:
 		for path in env['PATH'].split(':'):
 			full = os.path.join(path, cmd)
-			if os.path.exists(full) and os.access(full, os.X_OK):
+			if os.path.isfile(full) and os.access(full, os.X_OK):
 				return full
 	else:
 		print 'no env?'
