@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-from lib.util import communicate
+from lib.util import communicate, which
 
 import re
 
@@ -12,12 +12,13 @@ def xiki(view):
 		print 'xiki', repr(indent), sign, tree
 
 		pos = get_pos(view)
-		if sign == '-':
-			replace_line(view, pos, indent + '+ ' + tag)
-		elif sign == '+':
+		if sign == '+':
 			replace_line(view, pos, indent + '- ' + tag)
 
 		if get_line(view, 1).startswith(indent + '\t'):
+			if sign == '-':
+				replace_line(view, pos, indent + '+ ' + tag)
+
 			edit = view.begin_edit()
 			cleanup(view, edit, pos, indent + '\t')
 			select(view, pos)
@@ -25,7 +26,8 @@ def xiki(view):
 			view.end_edit(edit)
 			return
 
-		output = communicate(['xiki'] + tree.split(' '))
+		cmd = ['ruby', which('xiki')] + tree.split(' ')
+		output = communicate(cmd)
 		if output:
 			insert(view, output, indent + '\t')
 
@@ -125,7 +127,7 @@ def select(view, point):
 	view.sel().clear()
 	view.sel().add(sublime.Region(point, point))
 
-# sublime commands`
+# sublime commands
 
 class Xiki(sublime_plugin.WindowCommand):
 	def run(self):

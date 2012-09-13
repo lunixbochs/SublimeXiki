@@ -9,8 +9,8 @@ def memoize(f):
 	def wrap(*args):
 		if not args in rets:
 			rets[args] = f(*args)
-		else:
-			return rets[args]
+
+		return rets[args]
 
 	wrap.__name__ = f.__name__
 	return wrap
@@ -54,6 +54,22 @@ def create_environment():
 		os.environ['PATH'] = find_path(os.environ)
 
 	return os.environ
+
+def which(cmd, env=None):
+	if env is None:
+		print 'recreating env'
+		env = create_environment()
+
+	print env
+	print create_environment()
+
+	if env and 'PATH' in env:
+		for path in env['PATH'].split(':'):
+			full = os.path.join(path, cmd)
+			if os.path.exists(full) and os.access(full, os.X_OK):
+				return full
+	else:
+		print 'no env?'
 
 # popen methods
 def communicate(cmd, stdin=None):
