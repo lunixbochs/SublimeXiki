@@ -7,12 +7,25 @@ def xiki(view):
 	settings = view.settings()
 
 	if settings.get('xiki'):
-		indent, tree = find_tree(view)
+		indent, sign, tag, tree = find_tree(view)
 		if not tree: return
-		print 'xiki', tree
+		print 'xiki', repr(indent), sign, tree
+
+		pos = get_pos(view)
+		if sign == '-':
+			replace_line(view, pos, indent + '+ ' + tag)
+		elif sign == '+':
+			replace_line(view, pos, indent + '- ' + tag)
+
+		if get_line(view, 1).startswith(indent + '\t'):
+			edit = view.begin_edit()
+			cleanup(view, edit, pos, indent + '\t')
+			select(view, pos)
+
+			view.end_edit(edit)
+			return
 
 		output = communicate(['xiki'] + tree.split(' '))
-		output = output.rstrip('\r\n')
 		if output:
 			insert(view, output, indent + '\t')
 
@@ -21,12 +34,12 @@ def find_tree(view):
 	line = get_line(view)
 	match = re.match('^(\s*)(\+ |- )?(.*)$', line)
 	line_indent = last_indent = match.group(1)
+	sign = (match.group(2) or '').strip()
 	tag = match.group(3)
 	tree = [tag]
 
 	offset = -1
 	while last_indent != '':
-		print repr(last_indent), line
 		line = get_line(view, offset)
 		offset -= 1
 
@@ -47,52 +60,70 @@ def find_tree(view):
 
 		new_tree.insert(0, tag)
 
-	return line_indent, '/'.join(new_tree)
+	return line_indent, sign, tree[-1], '/'.join(new_tree)
 
 # helpers
+
+def replace_line(view, point, text):
+	text = text.rstrip()
+	line = view.full_line(point)
+
+	edit = view.begin_edit()
+	view.insert(edit, line.b, text + '\n')
+	view.erase(edit, line)
+	view.end_edit(edit)
+
+def get_pos(view):
+	cursor = view.sel()[0].b
+	return view.line(cursor).b
 
 def cleanup(view, edit, pos, indent):
 	line, _ = view.rowcol(pos)
 
+	append_newline = False
 	while True:
 		point = view.text_point(line + 1, 0)
 		region = view.full_line(point)
 		if region.a == region.b:
-			return
+			break
 
 		text = view.substr(region)
-		if not text.strip() or text.startswith(indent):
+		if text.startswith(indent):
 			view.erase(edit, region)
+		elif not text.strip():
+			view.erase(edit, region)
+			append_newline = True
 		else:
 			break
 
+	if append_newline:
+		point = view.line(point).a
+		view.insert(edit, point, '\n')
+
 def insert(view, text, indent=''):
-	cursor = view.sel()[0].b
-	line_end = view.line(cursor).b
+	line_end = get_pos(view)
 
 	edit = view.begin_edit()
 	cleanup(view, edit, line_end, indent)
 
-	view.insert(edit, line_end, '\n')
 	for line in reversed(text.split('\n')):
 		view.insert(edit, line_end, '\n' + indent + line)
 
-	view.sel().clear()
-	view.sel().add(sublime.Region(line_end, line_end))
+	select(view, line_end)
 	view.end_edit(edit)
 
 def get_line(view, offset=0):
-	sel = view.sel()
-	point = sel[0].b
-	row, _ = view.rowcol(point)
+	row, _ = view.rowcol(get_pos(view))
 
-	point = view.text_point(row + offset, 0)	
-	if row + offset < 0:
-		print point, row + offset
-		raise Exception
+	point = view.text_point(row + offset, 0)
+	assert row + offset >= 0
 
 	line = view.line(point)
 	return view.substr(line).strip('\r\n')
+
+def select(view, point):
+	view.sel().clear()
+	view.sel().add(sublime.Region(point, point))
 
 # sublime commands`
 
