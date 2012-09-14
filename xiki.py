@@ -2,6 +2,7 @@ import sublime, sublime_plugin
 from lib.util import communicate, which
 
 import re
+import shlex
 
 INDENTATION = '  '
 
@@ -10,6 +11,7 @@ class BoundaryError(Exception): pass
 def xiki(view):
 	settings = view.settings()
 
+	cmd = None
 	if settings.get('xiki'):
 		indent, sign, tag, tree = find_tree(view)
 		if not tree: return
@@ -28,25 +30,30 @@ def xiki(view):
 			select(view, pos)
 
 			view.end_edit(edit)
-			return
-
-		if sign == '-':
-			return
-
-		if which('ruby'):
-			cmd = ['ruby', which('xiki')]
+			pass
+		elif sign == '$':
+			cmd = shlex.split(tag.encode('ascii', 'replace'), True)
+		elif sign == '-':
+			pass
 		else:
-			cmd = ['xiki']
+			if which('ruby'):
+				cmd = ['ruby', which('xiki')]
+			else:
+				cmd = ['xiki']
 
-		cmd += tree.split(' ')
-		output = communicate(cmd)
-		if output:
-			insert(view, output, indent + INDENTATION)
+			cmd += tree.split(' ')
+
+		if cmd:
+			output = communicate(cmd)
+			if output:
+				insert(view, output, indent + INDENTATION)
 
 def find_tree(view):
+	regex = re.compile('^(\s*)([-+$]\s*)?(.*)$')
+
 	view.run_command('single_selection')
 	line = get_line(view)
-	match = re.match('^(\s*)(\+ |- )?(.*)$', line)
+	match = regex.match(line)
 	line_indent = last_indent = match.group(1)
 	sign = (match.group(2) or '').strip()
 	tag = match.group(3)
@@ -61,7 +68,7 @@ def find_tree(view):
 
 		offset -= 1
 
-		match = re.match('^(\s*)(\+ |- )?(.*)$', line)
+		match = regex.match(line)
 		if match:
 			indent = match.group(1)
 			tag = match.group(3)
