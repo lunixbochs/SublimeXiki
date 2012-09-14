@@ -1,6 +1,11 @@
 import sublime, sublime_plugin
 from lib.util import communicate, which
 
+import sys
+# reload lib.util on update/reload of primary module
+# so improvements will be loaded without a sublime restart
+sys.modules['lib.util'] = reload(sys.modules['lib.util'])
+
 import re
 import shlex
 
@@ -44,7 +49,7 @@ def xiki(view):
 			cmd += tree.split(' ')
 
 		if cmd:
-			output = communicate(cmd)
+			output = communicate(cmd, return_error=True)
 			if output:
 				insert(view, output, indent + INDENTATION)
 

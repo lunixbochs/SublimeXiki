@@ -65,14 +65,15 @@ def which(cmd, env=None):
 			return full
 
 # popen methods
-def communicate(cmd, stdin=None):
-	out = popen(cmd)
-	if out is not None:
-		out = out.communicate(stdin)
+def communicate(cmd, stdin=None, **popen_args):
+	p = popen(cmd, **popen_args)
+	if isinstance(p, subprocess.Popen):
+		out = p.communicate(stdin)
 		return (out[0] or '') + (out[1] or '')
+	elif isinstance(p, basestring):
+		return p
 	else:
 		return ''
-
 
 def tmpfile(cmd, code, suffix=''):
 	if isinstance(cmd, basestring):
@@ -125,7 +126,7 @@ def tmpdir(cmd, files, filename, code):
 	shutil.rmtree(d, True)
 	return out
 
-def popen(cmd, env=None):
+def popen(cmd, env=None, return_error=False):
 	if isinstance(cmd, basestring):
 		cmd = cmd,
 
@@ -145,4 +146,7 @@ def popen(cmd, env=None):
 	except OSError, err:
 		print 'Error launching', repr(cmd)
 		print 'Error was:', err.strerror
+
+		if return_error:
+			return err.strerror
 
