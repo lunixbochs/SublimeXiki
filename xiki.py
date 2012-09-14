@@ -3,31 +3,37 @@ from lib.util import communicate, which
 
 import re
 
+INDENTATION = '  '
+
+class BoundaryError(Exception): pass
+
 def xiki(view):
 	settings = view.settings()
 
 	if settings.get('xiki'):
 		indent, sign, tag, tree = find_tree(view)
 		if not tree: return
-		print 'xiki', repr(indent), sign, tree
+		print 'xiki', sign, tree
 
 		pos = get_pos(view)
 		if sign == '+':
 			replace_line(view, pos, indent + '- ' + tag)
 
-		if get_line(view, 1).startswith(indent + '\t'):
+		if get_line(view, 1).startswith(indent + INDENTATION):
 			if sign == '-':
 				replace_line(view, pos, indent + '+ ' + tag)
 
 			edit = view.begin_edit()
-			cleanup(view, edit, pos, indent + '\t')
+			cleanup(view, edit, pos, indent + INDENTATION)
 			select(view, pos)
 
 			view.end_edit(edit)
 			return
 
+		if sign == '-':
+			return
+
 		if which('ruby'):
-			print 'using ruby from PATH:', which('ruby')
 			cmd = ['ruby', which('xiki')]
 		else:
 			cmd = ['xiki']
@@ -35,7 +41,7 @@ def xiki(view):
 		cmd += tree.split(' ')
 		output = communicate(cmd)
 		if output:
-			insert(view, output, indent + '\t')
+			insert(view, output, indent + INDENTATION)
 
 def find_tree(view):
 	view.run_command('single_selection')
@@ -48,7 +54,11 @@ def find_tree(view):
 
 	offset = -1
 	while last_indent != '':
-		line = get_line(view, offset)
+		try:
+			line = get_line(view, offset)
+		except BoundaryError:
+			break
+
 		offset -= 1
 
 		match = re.match('^(\s*)(\+ |- )?(.*)$', line)
@@ -124,7 +134,8 @@ def get_line(view, offset=0):
 	row, _ = view.rowcol(get_pos(view))
 
 	point = view.text_point(row + offset, 0)
-	assert row + offset >= 0
+	if row + offset < 0:
+		raise BoundaryError
 
 	line = view.line(point)
 	return view.substr(line).strip('\r\n')
