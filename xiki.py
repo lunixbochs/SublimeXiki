@@ -77,7 +77,7 @@ def xiki(view):
 			cmd += tree.split(' ')
 
 		if cmd:
-			output = communicate(cmd, return_error=True)
+			output = communicate(cmd, None, 3, return_error=True)
 			if oldcwd:
 				os.chdir(oldcwd)
 

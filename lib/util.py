@@ -3,6 +3,8 @@ import shutil
 import tempfile
 import subprocess
 
+from threading import Timer
+
 def memoize(f):
 	rets = {}
 
@@ -65,10 +67,19 @@ def which(cmd, env=None):
 			return full
 
 # popen methods
-def communicate(cmd, stdin=None, **popen_args):
+def communicate(cmd, stdin=None, timeout=None, **popen_args):
 	p = popen(cmd, **popen_args)
 	if isinstance(p, subprocess.Popen):
+		timer = None
+		if timeout is not None:
+			kill = lambda: p.kill()
+			timer = Timer(timeout, kill)
+			timer.start()
+
 		out = p.communicate(stdin)
+		if timer is not None:
+			timer.cancel()
+
 		return (out[0] or '') + (out[1] or '')
 	elif isinstance(p, basestring):
 		return p
