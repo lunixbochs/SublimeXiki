@@ -57,12 +57,18 @@ def xiki(view):
 			elif os.path.isdir(target):
 				dirs = ''
 				files = ''
-				for entry in os.listdir(target):
-					absolute = os.path.join(target, entry)
-					if os.path.isdir(absolute):
-						dirs += '+ %s/\n' % entry
-					else:
-						files += '%s\n' % entry
+				listing = []
+				try:
+					listing = os.listdir(target)
+				except OSError, err:
+					dirs = '- ' + err.strerror + '\n'
+
+				for entry in listing:
+						absolute = os.path.join(target, entry)
+						if os.path.isdir(absolute):
+							dirs += '+ %s/\n' % entry
+						else:
+							files += '%s\n' % entry
 
 				output = (dirs + files) or '\n'
 		elif sign == '-':
@@ -117,7 +123,7 @@ def find_tree(view):
 
 			if len(indent) < len(last_indent) and part:
 				last_indent = indent
-				tree.insert(0, part.rstrip('/'))
+				tree.insert(0, part)
 
 	new_tree = []
 	path = None
@@ -131,7 +137,7 @@ def find_tree(view):
 		else:
 			new_tree.insert(0, part)
 
-	return line_indent, sign, path, tag, '/'.join(new_tree)
+	return line_indent, sign, path, tag, '/'.join(new_tree).replace('//', '/')
 
 # helpers
 
