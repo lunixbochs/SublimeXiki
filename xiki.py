@@ -23,7 +23,6 @@ def xiki(view):
 	oldcwd = None
 	if settings.get('xiki'):
 		indent, sign, path, tag, tree = find_tree(view)
-		print 'xiki', sign, path, tree
 
 		pos = get_pos(view)
 		if get_line(view, 1).startswith(indent + INDENTATION):
