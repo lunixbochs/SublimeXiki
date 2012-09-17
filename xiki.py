@@ -1,10 +1,11 @@
 import sublime, sublime_plugin
-from lib.util import communicate, which
 
+import lib.util
 import sys
 # reload lib.util on update/reload of primary module
 # so improvements will be loaded without a sublime restart
-sys.modules['lib.util'] = reload(sys.modules['lib.util'])
+sys.modules['lib.util'] = reload(lib.util)
+from lib.util import communicate, which
 
 import os
 import re
