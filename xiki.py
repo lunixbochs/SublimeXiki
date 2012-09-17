@@ -130,12 +130,15 @@ def find_tree(view):
 	for part in reversed(tree):
 		if part.startswith('@'):
 			new_tree.insert(0, part.strip('@'))
-			break
 		elif part.startswith('/'):
 			path = part
-			break
+		elif part.startswith('~'):
+			path = os.path.expanduser(part)
 		else:
 			new_tree.insert(0, part)
+			continue
+
+		break
 
 	return line_indent, sign, path, tag, '/'.join(new_tree).replace('//', '/')
 
