@@ -70,22 +70,24 @@ def spawn(view, edit, indent, cmd, sel):
 		count = 0
 		while True:
 			# TODO: also read stderr (in another thread?)
-			code = p.poll()
 
-			line = p.stdout.readline().strip('\r\n')
-			if line and not code:
-				q.put(line)
-				sublime.set_timeout(make_callback(merge, region, count), 1)
+			for line in p.stdout:
+				q.put(line.rstrip('\r\n'))
+				sublime.set_timeout(make_callback(merge, region, count), 100)
 				count += 1
-				if count % 3 == 0:
-					time.sleep(count / 10000.0)
-			else:
-				if not code:
-					code = p.wait()
+				if count % 10 == 0:
+					time.sleep(0.01 + count / 25000.0)
 
-				sublime.set_timeout(make_callback(view.erase_regions, region), 1)
-				del commands[region]
-				return
+				code = p.poll()
+				if code:
+					break
+			
+			if not code:
+				code = p.wait()
+
+			sublime.set_timeout(make_callback(view.erase_regions, region), 1)
+			del commands[region]
+			return
 
 	p = popen(cmd, return_error=True)
 	if isinstance(p, subprocess.Popen):
