@@ -14,6 +14,8 @@ import shlex
 import subprocess
 import thread
 import time
+import traceback
+import Queue
 
 INDENTATION = '  '
 
@@ -24,22 +26,63 @@ if not 'already' in globals():
 	commands = {}
 
 def spawn(view, edit, indent, cmd, sel):
-	def merge(region, msg):
-		pos = view.line(view.get_regions(region)[0].b - 1)
+	q = Queue.Queue()
+	def fold(region):
+		regions = view.get_regions(region)
+		for region in regions:
+			lines = view.split_by_newlines(region)
+			if len(lines) > 24:
 
+				lines = lines[1:-24]
+				area = lines.pop()
+				for sub in lines:
+					area = area.cover(sub)
+
+				view.unfold(area)
+				view.fold(area)
+
+	def merge(region, count):
+		if q.empty(): return
+		pos = view.line(view.get_regions(region)[0].end() - 1)
 		edit = view.begin_edit()
-		insert(view, edit, pos, msg, indent + INDENTATION)
-		view.end_edit(edit)
+		try:
+			start = time.time()
+			lines = []
+			while start - time.time() < 0.05:
+				try:
+					lines.append(q.get(False))
+					q.task_done()
+					count += 1
+				except Queue.Empty:
+					break
+
+			if not lines: return
+			insert(view, edit, pos, '\n'.join(lines), indent + INDENTATION)
+
+			if count - 1 > 24:
+				fold(region)
+		except:
+			print traceback.format_exc()
+		finally:
+			view.end_edit(edit)
 
 	def persist(p, region):
+		count = 0
 		while True:
+			# TODO: also read stderr (in another thread?)
+			code = p.poll()
+
 			line = p.stdout.readline().strip('\r\n')
-			if line:
-				sublime.set_timeout(make_callback(merge, region, line), 1)
-				time.sleep(0.005)
+			if line and not code:
+				q.put(line)
+				sublime.set_timeout(make_callback(merge, region, count), 1)
+				count += 1
+				if count % 3 == 0:
+					time.sleep(count / 10000.0)
 			else:
-				code = p.wait()
-				# sublime.set_timeout(make_callback(merge, region, '\n<- %i' % code), 1)
+				if not code:
+					code = p.wait()
+
 				sublime.set_timeout(make_callback(view.erase_regions, region), 1)
 				del commands[region]
 				return
@@ -77,15 +120,17 @@ def xiki(view):
 				if sign == '-':
 					replace_line(view, edit, pos, indent + '+ ' + tag)
 
+				do_clean = True
 				check = sublime.Region(sel.b, sel.b)
 				for name, process in commands.items():
 					regions = view.get_regions(name)
 					for region in regions:
 						if region.contains(check):
-							process.kill()
-							break
+							process.terminate()
+							do_clean = False
 
-				cleanup(view, edit, pos, indent + INDENTATION)
+				if do_clean:
+					cleanup(view, edit, pos, indent + INDENTATION)
 				# select(view, pos)
 			elif sign == '$':
 				if path:
@@ -232,7 +277,8 @@ def insert(view, edit, sel, text, indent=''):
 	cleanup(view, edit, line_end, indent)
 
 	for line in reversed(text.split('\n')):
-		view.insert(edit, line_end, '\n' + indent + line)
+		line = '\n' + indent + line
+		view.insert(edit, line_end, line.encode('ascii', 'replace'))
 
 def get_line(view, row=0):
 	point = view.text_point(row, 0)
