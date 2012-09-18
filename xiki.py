@@ -71,6 +71,7 @@ def spawn(view, edit, indent, cmd, sel):
 		while True:
 			# TODO: also read stderr (in another thread?)
 
+			code = None
 			for line in p.stdout:
 				q.put(line.rstrip('\r\n'))
 				sublime.set_timeout(make_callback(merge, region, count), 100)
@@ -82,7 +83,7 @@ def spawn(view, edit, indent, cmd, sel):
 				if code:
 					break
 			
-			if not code:
+			if code is None:
 				code = p.wait()
 
 			sublime.set_timeout(make_callback(view.erase_regions, region), 1)
