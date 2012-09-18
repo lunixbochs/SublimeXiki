@@ -10,12 +10,6 @@
 	<array>
 		<dict>
 			<key>match</key>
-			<string>^\s*\$</string>
-			<key>name</key>
-			<string>keyword.operator.shell</string>
-		</dict>
-		<dict>
-			<key>match</key>
 			<string>^\s*@</string>
 			<key>name</key>
 			<string>keyword.operator.base</string>
@@ -37,6 +31,24 @@
 			<string>^\s*\-</string>
 			<key>name</key>
 			<string>keyword.operator.collapse</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>^(\s*)(\$).+$</string>
+			<key>beginCaptures</key>
+			<dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.shell</string>
+				</dict>
+			</dict>
+			<key>contentName</key>
+			<string>comment.xiki.command.output</string>
+			<key>end</key>
+			<string>^(?!\1  ).*$</string>
+			<key>name</key>
+			<string>meta.xiki.command</string>
 		</dict>
 	</array>
 	<key>scopeName</key>
