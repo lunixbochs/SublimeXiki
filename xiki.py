@@ -45,7 +45,7 @@ def spawn(view, edit, indent, cmd, sel):
 		if q.empty(): return
 		regions = view.get_regions(region)
 		if not regions: return
-		
+
 		pos = view.line(regions[0].end() - 1)
 		edit = view.begin_edit()
 		try:
@@ -62,36 +62,45 @@ def spawn(view, edit, indent, cmd, sel):
 			if not lines: return
 			insert(view, edit, pos, '\n'.join(lines), indent + INDENTATION)
 
-			if count - 1 > 24:
-				fold(region)
+			fold(region)
 		except:
 			print traceback.format_exc()
 		finally:
 			view.end_edit(edit)
 
-	def persist(p, region):
+	def stderr(p, region):
 		count = 0
-		while True:
-			# TODO: also read stderr (in another thread?)
+		while p.poll() is None:
+			line = p.stderr.readline()
+			q.put(line.rstrip('\r\n'))
+			sublime.set_timeout(make_callback(merge, region, count), 100)
 
-			code = None
-			for line in p.stdout:
-				q.put(line.rstrip('\r\n'))
-				sublime.set_timeout(make_callback(merge, region, count), 100)
-				count += 1
-				if count % 10 == 0:
-					time.sleep(0.01 + count / 25000.0)
+			if count % 3 == 0:
+				time.sleep(0.01)
 
-				code = p.poll()
-				if code:
-					break
-			
-			if code is None:
-				code = p.wait()
+		# if the process wasn't terminated
+		if p.returncode >= 0:
+			q.put(p.stderr.read().rstrip('\r\n'))
+			sublime.set_timeout(make_callback(merge, region, count), 100)
 
-			sublime.set_timeout(make_callback(view.erase_regions, region), 1)
-			del commands[region]
-			return
+	def stdout(p, region):
+		count = 0
+		while p.poll() is None:
+			line = p.stdout.readline()
+			q.put(line.rstrip('\r\n'))
+			sublime.set_timeout(make_callback(merge, region, count), 100)
+
+			if count % 3 == 0:
+				time.sleep(0.01)
+
+		# if the process wasn't terminated
+		if p.returncode >= 0:
+			q.put(p.stdout.read().rstrip('\r\n'))
+			sublime.set_timeout(make_callback(merge, region, count), 100)
+
+		sublime.set_timeout(make_callback(view.erase_regions, region), 100)
+		del commands[region]
+		return
 
 	p = popen(cmd, return_error=True)
 	if isinstance(p, subprocess.Popen):
@@ -101,7 +110,8 @@ def spawn(view, edit, indent, cmd, sel):
 		commands[region] = p
 		view.add_regions(region, [spread], 'keyword', '', sublime.DRAW_OUTLINED)
 
-		thread.start_new_thread(persist, (p, region))
+		thread.start_new_thread(stdout, (p, region))
+		thread.start_new_thread(stderr, (p, region))
 	else:
 		insert(view, edit, sel, 'Error: ' + p, indent + INDENTATION)
 
