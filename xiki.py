@@ -68,37 +68,31 @@ def spawn(view, edit, indent, cmd, sel):
 		finally:
 			view.end_edit(edit)
 
-	def stderr(p, region):
+	def poll(p, region, fd):
 		count = 0
 		while p.poll() is None:
-			line = p.stderr.readline()
-			q.put(line.rstrip('\r\n'))
-			sublime.set_timeout(make_callback(merge, region, count), 100)
+			line = fd.readline()
+			if line:
+				q.put(line.rstrip('\r\n'))
+				sublime.set_timeout(make_callback(merge, region, count), 100)
 
 			if count % 3 == 0:
 				time.sleep(0.01)
 
 		# if the process wasn't terminated
 		if p.returncode >= 0:
-			q.put(p.stderr.read().rstrip('\r\n'))
-			sublime.set_timeout(make_callback(merge, region, count), 100)
+			out = fd.read()
+			if out:
+				q.put(out.rstrip('\r\n'))
+				sublime.set_timeout(make_callback(merge, region, count), 100)
+
+	def stderr(p, region):
+		poll(p, region, p.stderr)
 
 	def stdout(p, region):
-		count = 0
-		while p.poll() is None:
-			line = p.stdout.readline()
-			q.put(line.rstrip('\r\n'))
-			sublime.set_timeout(make_callback(merge, region, count), 100)
+		poll(p, region, p.stdout)
 
-			if count % 3 == 0:
-				time.sleep(0.01)
-
-		# if the process wasn't terminated
-		if p.returncode >= 0:
-			q.put(p.stdout.read().rstrip('\r\n'))
-			sublime.set_timeout(make_callback(merge, region, count), 100)
-
-		sublime.set_timeout(make_callback(view.erase_regions, region), 100)
+		sublime.set_timeout(make_callback(view.erase_regions, region), 500)
 		del commands[region]
 		return
 
