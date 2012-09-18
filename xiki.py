@@ -43,7 +43,10 @@ def spawn(view, edit, indent, cmd, sel):
 
 	def merge(region, count):
 		if q.empty(): return
-		pos = view.line(view.get_regions(region)[0].end() - 1)
+		regions = view.get_regions(region)
+		if not regions: return
+		
+		pos = view.line(regions[0].end() - 1)
 		edit = view.begin_edit()
 		try:
 			start = time.time()
