@@ -261,7 +261,6 @@ def replace_line(view, edit, point, text):
 def cleanup(view, edit, pos, indent):
 	line, _ = view.rowcol(pos)
 
-	append_newline = False
 	while True:
 		point = view.text_point(line + 1, 0)
 		region = view.full_line(point)
@@ -271,19 +270,14 @@ def cleanup(view, edit, pos, indent):
 		text = view.substr(region)
 		if text.startswith(indent):
 			view.erase(edit, region)
-		elif not text.strip():
-			view.erase(edit, region)
-			append_newline = True
 		else:
 			break
-
-	if append_newline:
-		point = view.line(point).a
-		view.insert(edit, point, '\n')
 
 def insert(view, edit, sel, text, indent=''):
 	line_end = view.line(sel.b).b
 
+	# TODO: does it always make sense to cleanup here?
+	# I bet it's way slower for console scrolling.
 	cleanup(view, edit, line_end, indent)
 
 	for line in reversed(text.split('\n')):
