@@ -144,14 +144,20 @@ def xiki(view):
 				# select(view, pos)
 			elif sign == '$':
 				if path:
+					p = dirname(path, tree, tag)
+
 					oldcwd = os.getcwd()
-					os.chdir(dirname(path, tree, tag))
+					os.chdir(p)
 
 				cmd = shlex.split(tag.encode('ascii', 'replace'), True)
 				persist = True
 			elif path:
 				# directory listing or file open
 				target = os.path.join(path, tree)
+				d, f = os.path.split(target)
+				f = unslash(f)
+				target = os.path.join(d, f)
+
 				if os.path.isfile(target):
 					sublime.active_window().open_file(target)
 				elif os.path.isdir(target):
@@ -168,12 +174,13 @@ def xiki(view):
 						if os.path.isdir(absolute):
 							dirs += '+ %s/\n' % entry
 						else:
+							entry = slash(entry, '\\+$-')
 							files += '%s\n' % entry
 
 					output = (dirs + files) or '\n'
 			elif sign == '-':
 				# dunno here
-				return
+				pass
 			elif tree:
 				if which('ruby'):
 					cmd = ['ruby', which('xiki')]
@@ -250,6 +257,26 @@ def find_tree(view, row):
 	return line_indent, sign, path, tag, '/'.join(new_tree).replace('//', '/')
 
 # helpers
+
+def slash(s, chars):
+	if re.match(r'^[%s]' % re.escape(chars), s):
+		s = '\\' + s
+
+	return s
+
+def unslash(s):
+	out = ''
+	escaped = False
+	for c in s:
+		if escaped:
+			escaped = False
+			out += c
+		elif c == '\\':
+			escaped = True
+		else:
+			out += c
+
+	return out
 
 def replace_line(view, edit, point, text):
 	text = text.rstrip()

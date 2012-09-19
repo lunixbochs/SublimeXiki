@@ -9,30 +9,6 @@
 	<key>patterns</key>
 	<array>
 		<dict>
-			<key>match</key>
-			<string>^\s*@</string>
-			<key>name</key>
-			<string>keyword.operator.base</string>
-		</dict>
-		<dict>
-			<key>match</key>
-			<string>^\s*\+</string>
-			<key>name</key>
-			<string>keyword.operator.expand</string>
-		</dict>
-		<dict>
-			<key>match</key>
-			<string>^\s*\-</string>
-			<key>name</key>
-			<string>keyword.operator.collapse</string>
-		</dict>
-		<dict>
-			<key>match</key>
-			<string>^\s*\-</string>
-			<key>name</key>
-			<string>keyword.operator.collapse</string>
-		</dict>
-		<dict>
 			<key>begin</key>
 			<string>^(\s*)(\$).+$</string>
 			<key>beginCaptures</key>
@@ -46,9 +22,27 @@
 			<key>contentName</key>
 			<string>comment.xiki.command.output</string>
 			<key>end</key>
-			<string>^(?!\1  ).*$</string>
+			<string>^(?!\1  )</string>
 			<key>name</key>
 			<string>meta.xiki.command</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>^\s*@</string>
+			<key>name</key>
+			<string>keyword.operator.base</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>^\s*[+\-]</string>
+			<key>name</key>
+			<string>keyword.operator.expand</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>^\s*(\\)(?=[\\$+\-])</string>
+			<key>name</key>
+			<string>comment.operator.path.escape</string>
 		</dict>
 	</array>
 	<key>scopeName</key>
