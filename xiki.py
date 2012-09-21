@@ -18,6 +18,7 @@ import traceback
 import Queue
 
 INDENTATION = '  '
+backspace_re = re.compile('.\b')
 
 class BoundaryError(Exception): pass
 
@@ -84,6 +85,7 @@ def spawn(view, edit, indent, cmd, sel):
 	def poll(p, region, fd):
 		while p.poll() is None:
 			line = fd.readline().decode('utf-8')
+			line = backspace_re.sub('', line)
 			if line:
 				q.put(line.rstrip('\r\n'))
 
