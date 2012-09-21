@@ -390,7 +390,7 @@ def is_xiki_buffer(view):
 
 # sublime event classes
 
-class XikiComplete(sublime_plugin.EventListener):
+class XikiListener(sublime_plugin.EventListener):
 	def on_query_completions(self, view, prefix, locations):
 		if is_xiki_buffer(view):
 			sel = view.sel()
@@ -405,6 +405,15 @@ class XikiComplete(sublime_plugin.EventListener):
 					# directory/file completion
 					target, partial = os.path.split(dirname(path, tree, tag))
 					return completions(target, partial)
+
+	def set_xiki(self, view):
+		if is_xiki_buffer(view):
+			view.settings().set('xiki', True)
+		else:
+			view.settings().set('xiki', False)
+
+	def on_selection_modified(self, view):
+		self.set_xiki(view)
 
 class Xiki(sublime_plugin.WindowCommand):
 	def run(self):
@@ -421,6 +430,7 @@ class NewXiki(sublime_plugin.WindowCommand):
 		view = self.window.new_file()
 		settings = view.settings()
 
+		settings.set('xiki', True)
 		settings.set('tab_size', 2)
 		settings.set('translate_tabs_to_spaces', True)
 		settings.set('syntax', 'Packages/SublimeXiki/Xiki.tmLanguage')
