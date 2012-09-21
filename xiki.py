@@ -137,7 +137,7 @@ def spawn(view, edit, indent, cmd, sel):
 def xiki(view):
 	settings = view.settings()
 
-	if settings.get('xiki'):
+	if is_xiki_buffer(view):
 		for sel in view.sel():
 			output = None
 			cmd = None
@@ -386,6 +386,9 @@ def make_callback(func, *args, **kwargs):
 	return wrapper
 
 def is_xiki_buffer(view):
+	if not view:
+		return False
+
 	return view.settings().get('syntax').endswith('/Xiki.tmLanguage')
 
 # sublime event classes
