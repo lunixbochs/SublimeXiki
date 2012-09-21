@@ -34,7 +34,11 @@ def spawn(view, edit, indent, cmd, sel):
 			if len(lines) > 24:
 
 				lines = lines[1:-24]
-				area = lines.pop()
+				try:
+					area = lines.pop()
+				except IndexError:
+					return
+
 				for sub in lines:
 					area = area.cover(sub)
 
@@ -149,7 +153,11 @@ def xiki(view):
 					oldcwd = os.getcwd()
 					os.chdir(p)
 
-				cmd = shlex.split(tag.encode('ascii', 'replace'), True)
+				try:
+					cmd = shlex.split(tag.encode('ascii', 'replace'), True)
+				except ValueError, err:
+					output = 'Error: ' + str(err)
+
 				persist = True
 			elif path:
 				# directory listing or file open
