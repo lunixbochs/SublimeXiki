@@ -10,7 +10,7 @@
 	<array>
 		<dict>
 			<key>begin</key>
-			<string>^(\s*)(\$).+$</string>
+			<string>^(\s*)(\${1,2}).+$</string>
 			<key>beginCaptures</key>
 			<dict>
 				<key>2</key>

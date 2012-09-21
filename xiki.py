@@ -5,7 +5,7 @@ import sys
 # reload lib.util on update/reload of primary module
 # so improvements will be loaded without a sublime restart
 sys.modules['lib.util'] = reload(lib.util)
-from lib.util import communicate, which, popen
+from lib.util import communicate, which, popen, create_environment
 
 import os
 import re
@@ -164,17 +164,25 @@ def xiki(view):
 				if do_clean:
 					cleanup(view, edit, pos, indent + INDENTATION)
 				# select(view, pos)
-			elif sign == '$':
+			elif sign == '$' or sign == '$$':
 				if path:
 					p = dirname(path, tree, tag)
 
 					oldcwd = os.getcwd()
 					os.chdir(p)
 
-				try:
-					cmd = shlex.split(tag.encode('ascii', 'replace'), True)
-				except ValueError, err:
-					output = 'Error: ' + str(err)
+				tag = tag.encode('ascii', 'replace')
+
+				env = create_environment()
+				if sign == '$$' and 'SHELL' in env:
+					shell = os.path.basename(env['SHELL'])
+					cmd = [shell, '-c', tag]
+				
+				if not cmd:
+					try:
+						cmd = shlex.split(tag, True)
+					except ValueError, err:
+						output = 'Error: ' + str(err)
 
 				persist = True
 			elif path:
@@ -235,7 +243,7 @@ def xiki(view):
 			view.end_edit(edit)
 
 def find_tree(view, row):
-	regex = re.compile(r'^(\s*)([-+$]\s*)?(.*)$')
+	regex = re.compile(r'^(\s*)(\$\$|[-+$]\s*)?(.*)$')
 
 	line = get_line(view, row)
 	match = regex.match(line)
