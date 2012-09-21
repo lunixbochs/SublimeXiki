@@ -104,10 +104,11 @@ def spawn(view, edit, indent, cmd, sel):
 			else:
 				time.sleep(max(0.1 - since, 0.1))
 		
-		del commands[region]
-		while not q.empty():
-			sublime.set_timeout(make_callback(merge, region), 10)
-			time.sleep(0.05)
+		if p.returncode not in (-9, -15):
+			del commands[region]
+			while not q.empty():
+				sublime.set_timeout(make_callback(merge, region), 10)
+				time.sleep(0.05)
 
 		sublime.set_timeout(make_callback(view.erase_regions, region), 150)
 
