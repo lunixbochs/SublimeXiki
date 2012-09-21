@@ -382,11 +382,14 @@ def make_callback(func, *args, **kwargs):
 
 	return wrapper
 
+def is_xiki_buffer(view):
+	return view.settings().get('syntax').endswith('/Xiki.tmLanguage')
+
 # sublime event classes
 
 class XikiComplete(sublime_plugin.EventListener):
 	def on_query_completions(self, view, prefix, locations):
-		if view.settings().get('xiki'):
+		if is_xiki_buffer(view):
 			sel = view.sel()
 			if len(sel) == 1:
 				row, _ = view.rowcol(sel[0].b)
@@ -407,7 +410,7 @@ class Xiki(sublime_plugin.WindowCommand):
 
 	def is_enabled(self):
 		view = self.window.active_view()
-		if view.settings().get('xiki'):
+		if is_xiki_buffer(view):
 			return True
 
 class NewXiki(sublime_plugin.WindowCommand):
@@ -415,7 +418,6 @@ class NewXiki(sublime_plugin.WindowCommand):
 		view = self.window.new_file()
 		settings = view.settings()
 
-		settings.set('xiki', True)
 		settings.set('tab_size', 2)
 		settings.set('translate_tabs_to_spaces', True)
 		settings.set('syntax', 'Packages/SublimeXiki/Xiki.tmLanguage')
@@ -423,7 +425,7 @@ class NewXiki(sublime_plugin.WindowCommand):
 class XikiClick(sublime_plugin.WindowCommand):
 	def run(self):
 		view = self.window.active_view()
-		if view.settings().get('xiki'):
+		if is_xiki_buffer(view):
 			xiki(view)
 		else:
 			# emulate the default double-click behavior
