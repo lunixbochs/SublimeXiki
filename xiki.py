@@ -314,28 +314,30 @@ def replace_line(view, edit, point, text):
 def cleanup(view, edit, pos, indent):
 	line, _ = view.rowcol(pos)
 
-	while True:
-		point = view.text_point(line + 1, 0)
-		region = view.full_line(point)
-		if region.a == region.b:
-			break
-
-		text = view.substr(region)
-		if text.startswith(indent):
-			view.erase(edit, region)
+	point = view.text_point(line + 1, 0)
+	text = view.substr(sublime.Region(point, view.size()))
+	count = 0
+	for l in text.split('\n'):
+		if l.startswith(indent):
+			count += 1
 		else:
 			break
 
-def insert(view, edit, sel, text, indent=''):
-	line_end = view.line(sel.b).b
+	start = view.text_point(line + 1, 0)
+	end = view.text_point(line + count, 0)
+	region = sublime.Region(
+		view.full_line(start).begin(),
+		view.full_line(end).end()
+	)
 
-	# TODO: does it always make sense to cleanup here?
-	# I bet it's way slower for console scrolling.
-	cleanup(view, edit, line_end, indent)
+	view.erase(edit, region)
+
+def insert(view, edit, sel, text, indent='', cleanup=True):
+	line_end = view.line(sel.b).b
 
 	for line in reversed(text.split('\n')):
 		line = '\n' + indent + line
-		view.insert(edit, line_end, line.encode('ascii', 'replace'))
+		view.insert(edit, line_end, line)
 
 def get_line(view, row=0):
 	point = view.text_point(row, 0)
