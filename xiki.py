@@ -415,7 +415,7 @@ class XikiListener(sublime_plugin.EventListener):
 		else:
 			view.settings().set('xiki', False)
 
-	def on_selection_modified(self, view):
+	def on_activated(self, view):
 		self.set_xiki(view)
 
 class Xiki(sublime_plugin.WindowCommand):
