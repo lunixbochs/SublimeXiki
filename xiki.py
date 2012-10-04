@@ -5,7 +5,7 @@ import sys
 # reload lib.util on update/reload of primary module
 # so improvements will be loaded without a sublime restart
 sys.modules['lib.util'] = reload(lib.util)
-from lib.util import communicate, which, popen, create_environment
+from lib.util import communicate, popen, create_environment
 
 import os
 import re
@@ -135,8 +135,6 @@ def spawn(view, edit, indent, cmd, sel):
 		insert(view, edit, sel, 'Error: ' + p, indent + INDENTATION)
 
 def xiki(view):
-	settings = view.settings()
-
 	if is_xiki_buffer(view):
 		for sel in view.sel():
 			output = None
@@ -219,11 +217,7 @@ def xiki(view):
 				# dunno here
 				pass
 			elif tree:
-				if which('ruby'):
-					cmd = ['ruby', which('xiki')]
-				else:
-					cmd = ['xiki']
-
+				cmd = ['xiki']
 				cmd += tree.split(' ')
 
 			if cmd:
