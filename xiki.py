@@ -11,6 +11,7 @@ import os
 import re
 import shlex
 
+import platform
 import subprocess
 import thread
 import time
@@ -194,6 +195,9 @@ def xiki(view):
 				target = os.path.join(d, f)
 
 				if os.path.isfile(target):
+					if platform.system() == 'Windows':
+						target = os.path.abspath(target)
+
 					sublime.active_window().open_file(target)
 				elif os.path.isdir(target):
 					dirs = ''
