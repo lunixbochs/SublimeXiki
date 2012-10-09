@@ -389,7 +389,7 @@ def make_callback(func, *args, **kwargs):
 	return wrapper
 
 def is_xiki_buffer(view):
-	if not view:
+	if view is None:
 		return False
 
 	return view.settings().get('syntax').endswith('/Xiki.tmLanguage')
