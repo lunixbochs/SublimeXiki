@@ -7,16 +7,16 @@ import sys
 sys.modules['lib.util'] = reload(lib.util)
 from lib.util import communicate, popen, create_environment
 
+from collections import defaultdict
 import os
+import platform
+import Queue
 import re
 import shlex
-
-import platform
 import subprocess
 import thread
 import time
 import traceback
-import Queue
 
 INDENTATION = '  '
 backspace_re = re.compile('.\b')
@@ -25,9 +25,10 @@ class BoundaryError(Exception): pass
 
 if not 'already' in globals():
 	already = True
-	commands = {}
+	commands = defaultdict(dict)
 
 def spawn(view, edit, indent, cmd, sel):
+	local_commands = commands[view.id()]
 	q = Queue.Queue()
 	def fold(region):
 		regions = view.get_regions(region)
@@ -108,7 +109,7 @@ def spawn(view, edit, indent, cmd, sel):
 				time.sleep(max(0.1 - since, 0.1))
 		
 		if p.returncode not in (-9, -15):
-			del commands[region]
+			del local_commands[region]
 			while not q.empty():
 				sublime.set_timeout(make_callback(merge, region), 10)
 				time.sleep(0.05)
@@ -126,7 +127,7 @@ def spawn(view, edit, indent, cmd, sel):
 		region = 'xiki sub %i' % p.pid
 		line = view.full_line(sel.b)
 		spread = sublime.Region(line.a, line.b)
-		commands[region] = p
+		local_commands[region] = p
 		view.add_regions(region, [spread], 'keyword', '', sublime.DRAW_OUTLINED)
 
 		thread.start_new_thread(stdout, (p, region))
@@ -156,11 +157,15 @@ def xiki(view):
 
 				do_clean = True
 				check = sublime.Region(sel.b, sel.b)
-				for name, process in commands.items():
+				for name, process in commands[view.id()].items():
 					regions = view.get_regions(name)
 					for region in regions:
 						if region.contains(check):
-							process.terminate()
+							try:
+								process.terminate()
+							except OSError:
+								pass
+
 							do_clean = False
 
 				if do_clean:
@@ -415,6 +420,19 @@ class XikiListener(sublime_plugin.EventListener):
 
 	def on_activated(self, view):
 		self.set_xiki(view)
+
+	def on_load(self, view):
+		self.set_xiki(view)
+
+	def on_close(self, view):
+		vid = view.id()
+		for process in commands[vid].values():
+			try:
+				process.terminate()
+			except OSError:
+				pass
+
+		del commands[vid]
 
 class Xiki(sublime_plugin.WindowCommand):
 	def run(self):
