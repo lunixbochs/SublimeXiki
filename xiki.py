@@ -136,16 +136,20 @@ def spawn(view, edit, indent, cmd, sel):
 	else:
 		insert(view, edit, sel, 'Error: ' + p, indent + INDENTATION)
 
-def xiki(view):
+def xiki(view, cont=False):
 	if is_xiki_buffer(view):
 		for sel in view.sel():
 			output = None
 			cmd = None
 			persist = False
 			oldcwd = None
+			path_op = False
 
 			view.sel().subtract(sel)
 			edit = view.begin_edit()
+
+			if sel.end() == view.size():
+				view.insert(edit, view.size(), '\n')
 
 			row, _ = view.rowcol(sel.b)
 			indent, sign, path, tag, tree = find_tree(view, row)
@@ -168,7 +172,7 @@ def xiki(view):
 
 							do_clean = False
 
-				if do_clean:
+				if do_clean and not cont:
 					cleanup(view, edit, pos, indent + INDENTATION)
 				# select(view, pos)
 			elif sign == '$' or sign == '$$':
@@ -193,6 +197,7 @@ def xiki(view):
 
 				persist = True
 			elif path:
+				path_op = True
 				# directory listing or file open
 				target = os.path.join(path, tree)
 				d, f = os.path.split(target)
@@ -244,6 +249,22 @@ def xiki(view):
 					replace_line(view, edit, pos, indent + '- ' + tag)
 
 				insert(view, edit, sel, output, indent + INDENTATION)
+
+			if cont:
+				region = find_region(view, pos, indent + INDENTATION)
+				end = view.line(region.end()).begin()
+
+				added = ''
+				if path_op:
+					added += INDENTATION + '$ '
+
+				elif sign in ('$$', '$'):
+					added += sign + ' '
+
+				view.insert(edit, end, indent + added + '\n')
+				cur = view.line(end).end()
+				sel = sublime.Region(cur, cur)
+				view.show(cur)
 
 			view.sel().add(sel)
 			view.end_edit(edit)
@@ -325,7 +346,7 @@ def replace_line(view, edit, point, text):
 	view.insert(edit, line.b, text + '\n')
 	view.erase(edit, line)
 
-def cleanup(view, edit, pos, indent):
+def find_region(view, pos, indent):
 	line, _ = view.rowcol(pos)
 
 	point = view.text_point(line + 1, 0)
@@ -343,7 +364,10 @@ def cleanup(view, edit, pos, indent):
 		view.full_line(start).begin(),
 		view.full_line(end).end()
 	)
+	return region
 
+def cleanup(view, edit, pos, indent):
+	region = find_region(view, pos, indent)
 	view.erase(edit, region)
 
 def insert(view, edit, sel, text, indent='', cleanup=True):
@@ -436,13 +460,16 @@ class XikiListener(sublime_plugin.EventListener):
 
 class Xiki(sublime_plugin.WindowCommand):
 	def run(self):
-		view = self.window.active_view()
-		xiki(view)
+		xiki(self.window.active_view())
 
 	def is_enabled(self):
 		view = self.window.active_view()
 		if is_xiki_buffer(view):
 			return True
+
+class XikiContinue(Xiki):
+	def run(self):
+		xiki(self.window.active_view(), cont=True)
 
 class NewXiki(sublime_plugin.WindowCommand):
 	def run(self):
