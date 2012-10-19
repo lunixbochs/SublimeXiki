@@ -143,7 +143,7 @@ def xiki(view, cont=False):
 			cmd = None
 			persist = False
 			oldcwd = None
-			path_op = False
+			op = None
 
 			view.sel().subtract(sel)
 			edit = view.begin_edit()
@@ -173,9 +173,11 @@ def xiki(view, cont=False):
 							do_clean = False
 
 				if do_clean and not cont:
+					op = 'cleanup'
 					cleanup(view, edit, pos, indent + INDENTATION)
 				# select(view, pos)
 			elif sign == '$' or sign == '$$':
+				op = 'command'
 				if path:
 					p = dirname(path, tree, tag)
 
@@ -197,7 +199,6 @@ def xiki(view, cont=False):
 
 				persist = True
 			elif path:
-				path_op = True
 				# directory listing or file open
 				target = os.path.join(path, tree)
 				d, f = os.path.split(target)
@@ -205,11 +206,14 @@ def xiki(view, cont=False):
 				target = os.path.join(d, f)
 
 				if os.path.isfile(target):
+					op = 'file'
 					if platform.system() == 'Windows':
 						target = os.path.abspath(target)
 
-					sublime.active_window().open_file(target)
+					if not cont:
+						sublime.active_window().open_file(target)
 				elif os.path.isdir(target):
+					op = 'dir'
 					dirs = ''
 					files = ''
 					listing = []
@@ -231,6 +235,7 @@ def xiki(view, cont=False):
 				# dunno here
 				pass
 			elif tree:
+				op = 'xiki'
 				cmd = ['xiki']
 				cmd += tree.split(' ')
 
@@ -250,14 +255,16 @@ def xiki(view, cont=False):
 
 				insert(view, edit, sel, output, indent + INDENTATION)
 
+			print 'here'
 			if cont:
 				region = find_region(view, pos, indent + INDENTATION)
 				end = view.line(region.end()).begin()
 
 				added = ''
-				if path_op:
+				if op == 'file':
+					added += '$ '
+				elif op == 'dir':
 					added += INDENTATION + '$ '
-
 				elif sign in ('$$', '$'):
 					added += sign + ' '
 

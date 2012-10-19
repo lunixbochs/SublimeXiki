@@ -7,7 +7,7 @@ Hotkeys:
 ----
   - `cmd+enter`: run or collapse the highlighted command/menu.
   - `cmd+shift+enter`: run the current command, and place the cursor after the output.
-    - If used on a directory, will indent to the subdirectory level and create a command prompt (`$`)
+    - If used on a directory or file, will indent to the subdirectory level and create a command prompt (`$`)
     - If used on a command prompt, will maintain the current indentation and create a prompt (`$$` or `$`)
 
 Useful SublimeXiki commands:
