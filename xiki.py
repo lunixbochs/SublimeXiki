@@ -145,6 +145,7 @@ def xiki(view, cont=False):
 			persist = False
 			oldcwd = None
 			op = None
+			scroll = False
 
 			view.sel().subtract(sel)
 			edit = view.begin_edit()
@@ -271,10 +272,13 @@ def xiki(view, cont=False):
 				view.insert(edit, end, indent + added + '\n')
 				cur = view.line(end).end()
 				sel = sublime.Region(cur, cur)
-				view.show(cur)
+				scroll = True
 
 			view.sel().add(sel)
 			view.end_edit(edit)
+
+			if scroll:
+				view.show_at_center(sel)
 
 def find_tree(view, row):
 	regex = re.compile(r'^(\s*)(\$\$|[-+$]\s*)?(.*)$')
