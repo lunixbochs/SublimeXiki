@@ -255,7 +255,6 @@ def xiki(view, cont=False):
 
 				insert(view, edit, sel, output, indent + INDENTATION)
 
-			print 'here'
 			if cont:
 				region = find_region(view, pos, indent + INDENTATION)
 				end = view.line(region.end()).begin()
