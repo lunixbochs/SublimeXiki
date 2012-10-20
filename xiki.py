@@ -73,7 +73,8 @@ def spawn(view, edit, indent, cmd, sel):
 					break
 
 			if not lines: return
-			insert(view, edit, pos, '\n'.join(lines), indent + INDENTATION)
+			lines = backspace_re.sub('', '\n'.join(lines))
+			insert(view, edit, pos, lines, indent + INDENTATION)
 
 			fold(region)
 		except:
@@ -87,7 +88,7 @@ def spawn(view, edit, indent, cmd, sel):
 	def poll(p, region, fd):
 		while p.poll() is None:
 			line = fd.readline().decode('utf-8')
-			line = backspace_re.sub('', line)
+
 			if line:
 				q.put(line.rstrip('\r\n'))
 
