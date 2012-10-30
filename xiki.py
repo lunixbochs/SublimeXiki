@@ -447,17 +447,9 @@ class XikiListener(sublime_plugin.EventListener):
 					target, partial = os.path.split(dirname(path, tree, tag))
 					return completions(target, partial)
 
-	def set_xiki(self, view):
-		if is_xiki_buffer(view):
-			view.settings().set('xiki', True)
-		else:
-			view.settings().set('xiki', False)
-
-	def on_activated(self, view):
-		self.set_xiki(view)
-
-	def on_load(self, view):
-		self.set_xiki(view)
+	def on_query_context(self, view, key, operator, operand, match_all):
+		if key == 'xiki' and is_xiki_buffer(view):
+			return True
 
 	def on_close(self, view):
 		vid = view.id()
@@ -487,7 +479,6 @@ class NewXiki(sublime_plugin.WindowCommand):
 		view = self.window.new_file()
 		settings = view.settings()
 
-		settings.set('xiki', True)
 		settings.set('tab_size', 2)
 		settings.set('translate_tabs_to_spaces', True)
 		settings.set('syntax', 'Packages/SublimeXiki/Xiki.tmLanguage')
@@ -496,8 +487,14 @@ class XikiClick(sublime_plugin.WindowCommand):
 	def run(self):
 		view = self.window.active_view()
 		if is_xiki_buffer(view):
+			sel = view.sel()
+			s = sel[0]
+
+			text = view.substr(s)
+			is_word = r'^(\w+|[^\w]+)$'
+			if not re.match(is_word, text.strip('\n')):
+				return
+
+			sel.clear()
+			sel.add(sublime.Region(s.b, s.a))
 			xiki(view)
-		else:
-			# emulate the default double-click behavior
-			# if we're not in a xiki buffer
-			view.run_command('expand_selection', {'to': 'word'})

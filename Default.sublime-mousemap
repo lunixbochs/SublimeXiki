@@ -1,9 +1,9 @@
 [
-/*
 	{
 		"button": "button1", "count": 2,
-		"command": "xiki_click",
-		"context": [{"key": "setting.xiki"}]
+		"press_command": "drag_select",
+		"press_args": {"by": "words"},
+		
+		"command": "xiki_click"
 	}
-*/
 ]
