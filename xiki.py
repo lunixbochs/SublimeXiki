@@ -423,6 +423,12 @@ def make_callback(func, *args, **kwargs):
 
 	return wrapper
 
+def apply_xiki_settings(view):
+	settings = view.settings()
+	settings.set('tab_size', 2)
+	settings.set('translate_tabs_to_spaces', True)
+	settings.set('syntax', 'Packages/SublimeXiki/Xiki.tmLanguage')
+
 def is_xiki_buffer(view):
 	if view is None or not view.settings().has('syntax'):
 		return False
@@ -451,6 +457,10 @@ class XikiListener(sublime_plugin.EventListener):
 		if key == 'xiki' and is_xiki_buffer(view):
 			return True
 
+	def on_load(self, view):
+		if is_xiki_buffer(view):
+			apply_xiki_settings(view)
+
 	def on_close(self, view):
 		vid = view.id()
 		for process in commands[vid].values():
@@ -477,11 +487,7 @@ class XikiContinue(Xiki):
 class NewXiki(sublime_plugin.WindowCommand):
 	def run(self):
 		view = self.window.new_file()
-		settings = view.settings()
-
-		settings.set('tab_size', 2)
-		settings.set('translate_tabs_to_spaces', True)
-		settings.set('syntax', 'Packages/SublimeXiki/Xiki.tmLanguage')
+		apply_xiki_settings(view)
 
 class XikiClick(sublime_plugin.WindowCommand):
 	def run(self):

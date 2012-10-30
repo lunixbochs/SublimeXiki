@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>fileTypes</key>
-	<array>xiki</array>
+	<array>
+		<string>xiki</string>
+	</array>
 	<key>name</key>
 	<string>Xiki</string>
 	<key>patterns</key>
