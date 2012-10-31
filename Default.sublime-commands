@@ -6,5 +6,19 @@
     {
         "caption": "Create Xiki Buffer",
         "command": "new_xiki"
+    },
+    {
+        "caption": "Preferences: SublimeXiki Settings – Default",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/SublimeXiki/SublimeXiki.sublime-settings"
+        }
+    },
+    {
+        "caption": "Preferences: SublimeXiki Settings – User",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/User/SublimeXiki.sublime-settings"
+        }
     }
 ]

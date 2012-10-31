@@ -8,6 +8,7 @@ sys.modules['lib.util'] = reload(lib.util)
 from lib.util import communicate, popen, create_environment
 
 from collections import defaultdict
+import json
 import os
 import platform
 import Queue
@@ -20,6 +21,8 @@ import traceback
 
 INDENTATION = '  '
 backspace_re = re.compile('.\b')
+
+xiki_settings = sublime.load_settings('SublimeXiki.sublime-settings')
 
 class BoundaryError(Exception): pass
 
@@ -458,7 +461,17 @@ class XikiListener(sublime_plugin.EventListener):
 			return True
 
 	def on_load(self, view):
-		if is_xiki_buffer(view):
+		# handle new user preferences file
+		if view.file_name() and os.path.split(view.file_name())[1] == 'SublimeXiki.sublime-settings':
+			if view.size() == 0:
+				edit = view.begin_edit()
+
+				template = {
+					"double_click": False
+				}
+				view.insert(edit, 0, json.dumps(template, indent=4))
+				view.end_edit(edit)
+		elif is_xiki_buffer(view):
 			apply_xiki_settings(view)
 
 	def on_close(self, view):
@@ -492,7 +505,7 @@ class NewXiki(sublime_plugin.WindowCommand):
 class XikiClick(sublime_plugin.WindowCommand):
 	def run(self):
 		view = self.window.active_view()
-		if is_xiki_buffer(view):
+		if is_xiki_buffer(view) and xiki_settings.get('double_click'):
 			sel = view.sel()
 			s = sel[0]
 
