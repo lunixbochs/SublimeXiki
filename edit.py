@@ -3,7 +3,6 @@
 
 import sublime
 import sublime_plugin
-from collections import defaultdict
 
 try:
     sublime.edit_storage
@@ -30,8 +29,6 @@ class EditStep:
 
 
 class Edit:
-    defer = defaultdict(dict)
-
     def __init__(self, view):
         self.view = view
         self.steps = []
