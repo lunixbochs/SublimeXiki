@@ -184,7 +184,6 @@ def tmpdir(cmd, files, filename, code):
     return out
 
 def popen(cmd, env=None):
-    import lint.persist as persist
     if isinstance(cmd, str):
         cmd = cmd,
 
@@ -202,6 +201,6 @@ def popen(cmd, env=None):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             startupinfo=info, env=env)
     except OSError as err:
-        persist.debug('Error launching', repr(cmd))
-        persist.debug('Error was:', err.strerror)
-        persist.debug('Environment:', env)
+        print 'Error launching', repr(cmd)
+        print 'Error was:', err.strerror
+        print 'Environment:', env
