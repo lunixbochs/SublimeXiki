@@ -201,6 +201,6 @@ def popen(cmd, env=None):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             startupinfo=info, env=env)
     except OSError as err:
-        print 'Error launching', repr(cmd)
-        print 'Error was:', err.strerror
-        print 'Environment:', env
+        print('Error launching', repr(cmd))
+        print('Error was:', err.strerror)
+        print('Environment:', env)
