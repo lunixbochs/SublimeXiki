@@ -183,23 +183,42 @@ def tmpdir(cmd, files, filename, code):
     shutil.rmtree(d, True)
     return out
 
-def popen(cmd, env=None):
+def popen(cmd, env=None, use_pty=False):
     if isinstance(cmd, str):
         cmd = cmd,
 
+    stdin = subprocess.PIPE
+    stdout = subprocess.PIPE
+    stderr = subprocess.PIPE
+
+    master = None
     info = None
     if os.name == 'nt':
         info = subprocess.STARTUPINFO()
         info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         info.wShowWindow = subprocess.SW_HIDE
+    elif use_pty:
+        import pty
+        master, slave = pty.openpty()
+        stdin = slave
+        stdout = slave
 
     if env is None:
         env = create_environment()
 
     try:
-        return subprocess.Popen(cmd, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        p = subprocess.Popen(cmd, stdin=stdin,
+            stdout=stdout, stderr=stderr,
             startupinfo=info, env=env)
+
+        if master:
+            p.pty = True
+            p.stdout = os.fdopen(master, 'rb')
+            p.stdin = os.fdopen(master, 'wb')
+        else:
+            p.pty = False
+
+        return p
     except OSError as err:
         print('Error launching', repr(cmd))
         print('Error was:', err.strerror)

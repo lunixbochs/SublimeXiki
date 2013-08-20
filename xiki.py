@@ -33,7 +33,7 @@ if not 'already' in globals():
 	already = True
 	commands = defaultdict(dict)
 
-def spawn(view, edit, indent, cmd, sel):
+def spawn(view, indent, cmd, sel):
 	local_commands = commands[view.id()]
 	q = queue.Queue()
 	def fold(region):
@@ -86,22 +86,30 @@ def spawn(view, edit, indent, cmd, sel):
 			except:
 				print(traceback.format_exc())
 			finally:
-				for sel in restore_sel:
-					view.sel().add(sel)
+				def restore_selections():
+					for sel in restore_sel:
+						view.sel().add(sel)
+
+				edit.callback(restore_selections)
 
 	def poll(p, region, fd):
-		while p.poll() is None:
-			line = fd.readline().decode('utf8')
+		line = True
+		while p.poll() is None or line:
+			line = fd.readline()
+			if isinstance(line, bytes):
+				line = line.decode('utf8')
 
 			if line:
 				q.put(line.rstrip('\r\n'))
 
 		# if the process wasn't terminated
-		if p.returncode >= 0:
-			out = fd.read().decode('utf8')
-			if out:
-				q.put(out.rstrip('\r\n'))
-				merge(region)
+		out = fd.read()
+		if isinstance(out, bytes):
+			out = out.decode('utf8')
+
+		if out:
+			q.put(out.rstrip('\r\n'))
+			merge(region)
 
 	def out(p, region):
 		last = 0
@@ -112,7 +120,7 @@ def spawn(view, edit, indent, cmd, sel):
 				merge(region)
 			else:
 				time.sleep(max(0.1 - since, 0.1))
-		
+
 		if p.returncode not in (-9, -15):
 			del local_commands[region]
 			while not q.empty():
@@ -121,13 +129,7 @@ def spawn(view, edit, indent, cmd, sel):
 
 		view.erase_regions(region)
 
-	def stderr(p, region):
-		poll(p, region, p.stderr)
-
-	def stdout(p, region):
-		poll(p, region, p.stdout)
-
-	p = popen(cmd)
+	p = popen(cmd, use_pty=False)
 	if isinstance(p, subprocess.Popen):
 		region = 'xiki sub %i' % p.pid
 		line = view.full_line(sel.b)
@@ -135,8 +137,11 @@ def spawn(view, edit, indent, cmd, sel):
 		local_commands[region] = p
 		view.add_regions(region, [spread], 'keyword', '', sublime.DRAW_OUTLINED)
 
-		_thread.start_new_thread(stdout, (p, region))
-		_thread.start_new_thread(stderr, (p, region))
+		if p.pty:
+			_thread.start_new_thread(poll, (p, region, p.stdout))
+		else:
+			_thread.start_new_thread(poll, (p, region, p.stderr))
+			_thread.start_new_thread(poll, (p, region, p.stdout))
 		_thread.start_new_thread(out, (p, region))
 	else:
 		with Edit(view) as edit:
@@ -144,143 +149,153 @@ def spawn(view, edit, indent, cmd, sel):
 
 def xiki(view, cont=False):
 	if is_xiki_buffer(view):
-		with Edit(view) as edit:
-			for sel in view.sel():
-				output = None
-				cmd = None
-				persist = False
-				oldcwd = None
-				op = None
-				scroll = False
+		for sel in view.sel():
+			output = None
+			cmd = None
+			persist = False
+			oldcwd = None
+			op = None
+			scroll = False
 
-				view.sel().subtract(sel)
+			view.sel().subtract(sel)
 
-				if sel.end() == view.size():
+			if sel.end() == view.size():
+				with Edit(view) as edit:
 					edit.insert(view.size(), '\n')
 
-				row, _ = view.rowcol(sel.b)
-				indent, sign, path, tag, tree = find_tree(view, row)
+			row, _ = view.rowcol(sel.b)
+			indent, sign, path, tag, tree = find_tree(view, row)
 
-				pos = view.line(sel.b).b
-				if get_line(view, row+1).startswith(indent + INDENTATION):
-					if sign == '-':
+			pos = view.line(sel.b).b
+			if get_line(view, row+1).startswith(indent + INDENTATION):
+				if sign == '-':
+					with Edit(view) as edit:
 						replace_line(view, edit, pos, indent + '+ ' + tag)
 
-					do_clean = True
-					check = sublime.Region(sel.b, sel.b)
-					for name, process in list(commands[view.id()].items()):
-						regions = view.get_regions(name)
-						for region in regions:
-							if region.contains(check):
-								try:
-									process.terminate()
-								except OSError:
-									pass
+				do_clean = True
+				check = sublime.Region(sel.b, sel.b)
+				for name, process in list(commands[view.id()].items()):
+					regions = view.get_regions(name)
+					for region in regions:
+						if region.contains(check):
+							try:
+								process.terminate()
+							except OSError:
+								pass
 
-								do_clean = False
+							do_clean = False
 
-					if do_clean and not cont:
-						op = 'cleanup'
+				if do_clean and not cont:
+					op = 'cleanup'
+					with Edit(view) as edit:
 						cleanup(view, edit, pos, indent + INDENTATION)
-					# select(view, pos)
-				elif sign == '$' or sign == '$$':
-					op = 'command'
-					if path:
-						p = dirname(path, tree, tag)
+				# select(view, pos)
+			elif sign == '$' or sign == '$$':
+				op = 'command'
+				if path:
+					p = dirname(path, tree, tag)
 
-						oldcwd = os.getcwd()
-						os.chdir(p)
+					oldcwd = os.getcwd()
+					os.chdir(p)
 
-					env = create_environment()
-					if sign == '$$' and 'SHELL' in env:
-						shell = os.path.basename(env['SHELL'])
-						cmd = [shell, '-c', tag]
-					
-					if not cmd:
-						try:
-							cmd = shlex.split(tag, True)
-						except ValueError as err:
-							output = 'Error: ' + str(err)
+				env = create_environment()
+				if sign == '$$' and 'SHELL' in env:
+					shell = os.path.basename(env['SHELL'])
+					cmd = [shell, '-c', tag]
 
-					persist = True
-				elif path:
-					# directory listing or file open
-					target = os.path.join(path, tree)
-					d, f = os.path.split(target)
-					f = unslash(f)
-					target = os.path.join(d, f)
+				if not cmd:
+					try:
+						cmd = shlex.split(tag, True)
+					except ValueError as err:
+						output = 'Error: ' + str(err)
 
-					if os.path.isfile(target):
-						op = 'file'
-						if platform.system() == 'Windows':
-							target = os.path.abspath(target)
+				persist = True
+			elif path:
+				# directory listing or file open
+				target = os.path.join(path, tree)
+				d, f = os.path.split(target)
+				f = unslash(f)
+				target = os.path.join(d, f)
 
-						if not cont:
-							sublime.active_window().open_file(target)
-					elif os.path.isdir(target):
-						op = 'dir'
-						dirs = ''
-						files = ''
-						listing = []
-						try:
-							listing = os.listdir(target)
-						except OSError as err:
-							dirs = '- ' + err.strerror + '\n'
+				if os.path.isfile(target):
+					op = 'file'
+					if platform.system() == 'Windows':
+						target = os.path.abspath(target)
 
-						for entry in listing:
-							absolute = os.path.join(target, entry)
-							if os.path.isdir(absolute):
-								dirs += '+ %s/\n' % entry
-							else:
-								entry = slash(entry, '\\+$-')
-								files += '%s\n' % entry
+					if not cont:
+						sublime.active_window().open_file(target)
+				elif os.path.isdir(target):
+					op = 'dir'
+					dirs = ''
+					files = ''
+					listing = []
+					try:
+						listing = os.listdir(target)
+					except OSError as err:
+						dirs = '- ' + err.strerror + '\n'
 
-						output = (dirs + files) or '\n'
-				elif sign == '-':
-					# dunno here
-					pass
-				elif tree:
-					op = 'xiki'
-					cmd = ['xiki']
-					cmd += tree.split(' ')
+					for entry in listing:
+						absolute = os.path.join(target, entry)
+						if os.path.isdir(absolute):
+							dirs += '+ %s/\n' % entry
+						else:
+							entry = slash(entry, '\\+$-')
+							files += '%s\n' % entry
 
-				if cmd:
-					if persist:
-						insert(view, edit, sel, '', indent + INDENTATION)
-						spawn(view, edit, indent, cmd, sel)
-					else:
-						output = communicate(cmd, None, 3)
+					output = (dirs + files) or '\n'
+			elif sign == '-':
+				# dunno here
+				pass
+			elif tree:
+				op = 'xiki'
+				cmd = ['xiki']
+				cmd += tree.split(' ')
 
-					if oldcwd:
-						os.chdir(oldcwd)
+			if cmd:
+				if persist:
+					end = view.line(sel.b).b
+					with Edit(view) as edit:
+						edit.insert(end, '\n' + indent + INDENTATION)
+					spawn(view, indent, cmd, sel)
+				else:
+					output = communicate(cmd, None, 3)
 
-				if output:
+				if oldcwd:
+					os.chdir(oldcwd)
+
+			if output:
+				with Edit(view) as edit:
 					if sign == '+':
 						replace_line(view, edit, pos, indent + '- ' + tag)
 
 					insert(view, edit, sel, output, indent + INDENTATION)
 
-				if cont:
-					region = find_region(view, pos, indent + INDENTATION)
-					end = view.line(region.end()).begin()
+			if cont:
+				region = find_region(view, pos, indent + INDENTATION)
+				end = view.line(region.end()).begin()
 
-					added = ''
-					if op == 'file':
-						added += '$ '
-					elif op == 'dir':
-						added += INDENTATION + '$ '
-					elif sign in ('$$', '$'):
-						added += sign + ' '
+				added = ''
+				if op == 'file':
+					added += '$ '
+				elif op == 'dir':
+					added += INDENTATION + '$ '
+				elif sign in ('$$', '$'):
+					added += sign + ' '
 
-					edit.insert(end, indent + added + '\n')
+				def set_selection():
 					cur = view.line(end).end()
 					sel = sublime.Region(cur, cur)
-					scroll = True
+					view.sel().add(sel)
+					view.show_at_center(sel)
 
+				with Edit(view) as edit:
+					edit.insert(end, indent + added + '\n')
+					edit.callback(set_selection)
+			else:
 				view.sel().add(sel)
 
-				if scroll:
-					view.show_at_center(sel)
+			if scroll:
+				view.show_at_center(sel)
 
 def find_tree(view, row):
 	regex = re.compile(r'^(\s*)(\$\$|[-+$]\s*)?(.*)$')
@@ -384,11 +399,12 @@ def cleanup(view, edit, pos, indent):
 	edit.erase(region)
 
 def insert(view, edit, sel, text, indent='', cleanup=True):
-	line_end = view.line(sel.b).b
+	pos = view.line(sel.b).b
 
-	for line in reversed(text.split('\n')):
+	lines = reversed(text.split('\n'))
+	for line in lines:
 		line = '\n' + indent + line
-		edit.insert(line_end, line)
+		edit.insert(pos, line)
 
 def get_line(view, row=0):
 	point = view.text_point(row, 0)

@@ -1,6 +1,7 @@
 # edit.py
 # buffer editing for both ST2 and ST3 that "just works"
 
+import inspect
 import sublime
 import sublime_plugin
 
@@ -9,6 +10,22 @@ try:
 except AttributeError:
     sublime.edit_storage = {}
 
+def run_callback(func, *args, **kwargs):
+    spec = inspect.getfullargspec(func)
+    if spec.args or spec.varargs:
+        func(*args, **kwargs)
+    else:
+        func()
+
+
+class EditFuture:
+    def __init__(self, func):
+        self.func = func
+
+    def resolve(self, view, edit):
+        return self.func(view, edit)
+
+
 class EditStep:
     def __init__(self, cmd, *args):
         self.cmd = cmd
@@ -16,7 +33,7 @@ class EditStep:
 
     def run(self, view, edit):
         if self.cmd == 'callback':
-            return self.args[0](view, edit)
+            return run_callback(self.args[0], view, edit)
 
         funcs = {
             'insert': view.insert,
@@ -25,13 +42,29 @@ class EditStep:
         }
         func = funcs.get(self.cmd)
         if func:
-            func(edit, *self.args)
+            args = self.resolve_args(view, edit)
+            func(edit, *args)
+
+    def resolve_args(self, view, edit):
+        args = []
+        for arg in self.args:
+            if isinstance(arg, EditFuture):
+                arg = arg.resolve(view, edit)
+            args.append(arg)
+        return args
 
 
 class Edit:
     def __init__(self, view):
         self.view = view
         self.steps = []
+
+    def __nonzero__(self):
+        return bool(self.steps)
+
+    @classmethod
+    def future(self, func):
+        return EditFuture(func)
 
     def step(self, cmd, *args):
         step = EditStep(cmd, *args)
@@ -45,6 +78,11 @@ class Edit:
 
     def replace(self, region, string):
         self.step('replace', region, string)
+
+    def sel(self, start, end=None):
+        if end is None:
+            end = start
+        self.step('sel', start, end)
 
     def callback(self, func):
         self.step('callback', func)
