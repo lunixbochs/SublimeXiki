@@ -199,9 +199,12 @@ def xiki(view, cont=False):
 					os.chdir(p)
 
 				env = create_environment()
-				if sign == '$$' and 'SHELL' in env:
-					shell = os.path.basename(env['SHELL'])
-					cmd = [shell, '-c', tag]
+				if sign == '$$':
+					shell = env.get('SHELL')
+					if shell:
+						cmd = [shell, '-c', tag]
+					elif os.name == 'nt':
+						cmd = ['cmd', '/c', tag]
 
 				if not cmd:
 					try:
