@@ -1,7 +1,8 @@
 Xiki plugin for Sublime Text 2
 ====
 
-To use: open the command pallete (`cmd+shift+p` or `ctrl+shift+p`) and use `Create Xiki Buffer`
+- Before use: Install Xiki on your machine http://xiki.org/
+- To use: open the command pallete (`cmd+shift+p` or `ctrl+shift+p`) and use `Create Xiki Buffer`
 
 Hotkeys:
 ----
