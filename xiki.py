@@ -145,7 +145,7 @@ def spawn(view, indent, cmd, sel):
 		_thread.start_new_thread(out, (p, region))
 	else:
 		with Edit(view) as edit:
-			insert(view, edit, sel, 'Error: ' + p, indent + INDENTATION)
+			insert(view, edit, sel, 'Error: ' + (p or ''), indent + INDENTATION)
 
 def xiki(view, cont=False):
 	if is_xiki_buffer(view):

@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 from threading import Timer
+import shlex
 import subprocess
 
 def merge_user_settings(settings):
@@ -223,3 +224,4 @@ def popen(cmd, env=None, use_pty=False):
         print('Error launching', repr(cmd))
         print('Error was:', err.strerror)
         print('Environment:', env)
+        return err.strerror
