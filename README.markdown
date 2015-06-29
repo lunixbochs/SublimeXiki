@@ -2,6 +2,8 @@ Xiki plugin for Sublime Text 2
 ====
 
 - Before use: Install Xiki on your machine http://xiki.org/
+- Install [Package Control](https://sublime.wbond.net/installation) if you don't have it.
+- [Install the  SublimeXiki package](https://sublime.wbond.net/docs/usage).
 - To use: open the command pallete (`cmd+shift+p` or `ctrl+shift+p`) and use `Create Xiki Buffer`
 
 Hotkeys:
