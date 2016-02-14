@@ -192,13 +192,17 @@ def xiki(view, cont=False):
                 # select(view, pos)
             elif sign == '$' or sign == '$$':
                 op = 'command'
+                error = None
                 if path:
                     p = dirname(path, tree, tag)
                     try:
                         oldcwd = os.getcwd()
                     except FileNotFoundError:
                         pass
-                    os.chdir(p)
+                    try:
+                        os.chdir(p)
+                    except Exception as err:
+                        error = err
 
                 env = create_environment()
                 if sign == '$$':
@@ -212,7 +216,11 @@ def xiki(view, cont=False):
                     try:
                         cmd = shlex.split(tag, True)
                     except ValueError as err:
-                        output = 'Error: ' + str(err)
+                        error = err
+
+                if error:
+                    cmd = None
+                    output = str(error) + '\n'
 
                 persist = True
             elif path:
@@ -247,7 +255,7 @@ def xiki(view, cont=False):
                             entry = slash(entry, '\\+$-')
                             files += '%s\n' % entry
 
-                    output = (dirs + files) or '\n'
+                    output = (dirs + files) or ' '
             elif sign == '-':
                 # dunno here
                 pass
