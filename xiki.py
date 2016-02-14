@@ -439,7 +439,7 @@ def completions(base, partial, executable=False):
             path = os.path.join(base, name)
             if name.lower().startswith(partial):
                 if not executable or os.access(path, os.X_OK):
-                    ret.append(name)
+                    ret.append((name, name))
 
         return ret
 
@@ -471,7 +471,7 @@ class XikiListener(sublime_plugin.EventListener):
                 elif path:
                     # directory/file completion
                     target, partial = os.path.split(dirname(path, tree, tag))
-                    return completions(target, partial)
+                    return completions(target, partial), sublime.INHIBIT_WORD_COMPLETIONS
 
     def on_query_context(self, view, key, operator, operand, match_all):
         if key == 'xiki' and is_xiki_buffer(view):
