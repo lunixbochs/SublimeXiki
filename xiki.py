@@ -200,7 +200,7 @@ def xiki(view, cont=False):
                         error = err
 
                 env = create_environment()
-                if sign == '$$':
+                if sign == '$$' or xiki_settings.get('single_dollar_shell'):
                     shell = env.get('SHELL')
                     if shell:
                         cmd = [shell, '-c', tag]
@@ -483,7 +483,8 @@ class XikiListener(sublime_plugin.EventListener):
             if view.size() == 0:
                 with Edit(view) as edit:
                     template = {
-                        "double_click": False
+                        "double_click": False,
+                        "single_dollar_shell": False,
                     }
                     edit.insert(0, json.dumps(template, indent=4))
         elif is_xiki_buffer(view):
