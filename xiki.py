@@ -188,16 +188,18 @@ def xiki(view, cont=False):
             elif sign == '$' or sign == '$$':
                 op = 'command'
                 error = None
+
+                p = os.path.expanduser('~')
                 if path:
                     p = dirname(path, tree, tag)
-                    try:
-                        oldcwd = os.getcwd()
-                    except FileNotFoundError:
-                        pass
-                    try:
-                        os.chdir(p)
-                    except Exception as err:
-                        error = err
+                try:
+                    oldcwd = os.getcwd()
+                except FileNotFoundError:
+                    pass
+                try:
+                    os.chdir(p)
+                except Exception as err:
+                    error = err
 
                 env = create_environment()
                 if sign == '$$' or xiki_settings.get('single_dollar_shell'):
