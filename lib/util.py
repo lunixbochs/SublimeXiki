@@ -115,23 +115,23 @@ def combine_output(out, sep=''):
     ))
 
 def communicate(cmd, stdin=None, timeout=None, **popen_args):
-	p = popen(cmd, **popen_args)
-	if isinstance(p, subprocess.Popen):
-		timer = None
-		if timeout is not None:
-			kill = lambda: p.kill()
-			timer = Timer(timeout, kill)
-			timer.start()
+    p = popen(cmd, **popen_args)
+    if isinstance(p, subprocess.Popen):
+        timer = None
+        if timeout is not None:
+            kill = lambda: p.kill()
+            timer = Timer(timeout, kill)
+            timer.start()
 
-		out = p.communicate(stdin)
-		if timer is not None:
-			timer.cancel()
+        out = p.communicate(stdin)
+        if timer is not None:
+            timer.cancel()
 
-		return combine_output(out)
-	elif isinstance(p, str):
-		return p
-	else:
-		return ''
+        return combine_output(out)
+    elif isinstance(p, str):
+        return p
+    else:
+        return ''
 
 def tmpfile(cmd, code, suffix=''):
     if isinstance(cmd, str):
