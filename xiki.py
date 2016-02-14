@@ -3,7 +3,7 @@ import sublime, sublime_plugin
 import sys
 import os
 
-from .lib.util import communicate, popen, create_environment
+from .lib.util import communicate, popen, create_environment, which
 from .edit import Edit
 
 from collections import defaultdict
@@ -202,13 +202,11 @@ def xiki(view, cont=False):
                     error = err
 
                 env = create_environment()
-                if sign == '$$' or xiki_settings.get('single_dollar_shell'):
-                    shell = env.get('SHELL')
-                    if shell:
-                        cmd = [shell, '-c', tag]
-                    elif os.name == 'nt':
-                        cmd = ['cmd', '/c', tag]
-
+                shell = env.get('SHELL')
+                if shell and which(shell):
+                    cmd = [shell, '-c', tag]
+                elif os.name == 'nt':
+                    cmd = ['cmd', '/c', tag]
                 if not cmd:
                     try:
                         cmd = shlex.split(tag, True)
@@ -289,7 +287,7 @@ def xiki(view, cont=False):
                     added += '$ '
                 elif op == 'dir':
                     added += INDENTATION + '$ '
-                elif sign in ('$$', '$'):
+                elif sign == '$':
                     added += sign + ' '
 
                 def set_selection():
@@ -486,7 +484,6 @@ class XikiListener(sublime_plugin.EventListener):
                 with Edit(view) as edit:
                     template = {
                         "double_click": False,
-                        "single_dollar_shell": False,
                     }
                     edit.insert(0, json.dumps(template, indent=4))
         elif is_xiki_buffer(view):
