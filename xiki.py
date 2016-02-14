@@ -3,11 +3,6 @@ import sublime, sublime_plugin
 import sys
 import os
 
-from . import lib
-import imp
-# reload lib.util on update/reload of primary module
-# so improvements will be loaded without a sublime restart
-sys.modules['lib.util'] = imp.reload(lib.util)
 from .lib.util import communicate, popen, create_environment
 from .edit import Edit
 
