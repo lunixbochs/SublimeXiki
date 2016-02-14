@@ -394,10 +394,10 @@ def find_region(view, pos, indent):
     text = view.substr(sublime.Region(point, view.size()))
     count = 0
     for l in text.split('\n'):
-        if l.startswith(indent):
-            count += 1
-        else:
+        if not l.startswith(indent) and l.strip():
             break
+        else:
+            count += 1
 
     start = view.text_point(line + 1, 0)
     end = view.text_point(line + count, 0)
