@@ -1,5 +1,6 @@
 import os
 import shutil
+import string
 import tempfile
 from threading import Timer
 import shlex
@@ -225,3 +226,8 @@ def popen(cmd, env=None, use_pty=False):
         print('Error was:', err.strerror)
         print('Environment:', env)
         return err.strerror
+
+def get_windows_drives():
+    from ctypes import windll
+    bitmask = windll.kernel32.GetLogicalDrives()
+    return [c for i, c in enumerate(string.ascii_uppercase) if bitmask & 1 << i]

@@ -3,7 +3,7 @@ import sublime, sublime_plugin
 import sys
 import os
 
-from .lib.util import communicate, popen, create_environment, which
+from .lib import util
 from .edit import Edit
 
 from collections import defaultdict
@@ -124,7 +124,7 @@ def spawn(view, indent, cmd, sel):
 
         view.erase_regions(region)
 
-    p = popen(cmd, use_pty=False)
+    p = util.popen(cmd, use_pty=False)
     if isinstance(p, subprocess.Popen):
         region = 'xiki sub %i' % p.pid
         line = view.full_line(sel.b)
@@ -151,6 +151,7 @@ def xiki(view, cont=False):
             oldcwd = None
             op = None
             scroll = False
+            windows = platform.system() == 'Windows'
 
             view.sel().subtract(sel)
 
@@ -192,6 +193,8 @@ def xiki(view, cont=False):
                 p = os.path.expanduser('~')
                 if path:
                     p = dirname(path, tree, tag)
+                    if windows:
+                        p = p.lstrip('/')
                 try:
                     oldcwd = os.getcwd()
                 except FileNotFoundError:
@@ -201,11 +204,11 @@ def xiki(view, cont=False):
                 except Exception as err:
                     error = err
 
-                env = create_environment()
+                env = util.create_environment()
                 shell = env.get('SHELL')
-                if shell and which(shell):
+                if shell and util.which(shell):
                     cmd = [shell, '-c', tag]
-                elif os.name == 'nt':
+                elif windows:
                     cmd = ['cmd', '/c', tag]
                 if not cmd:
                     try:
@@ -227,7 +230,7 @@ def xiki(view, cont=False):
 
                 if os.path.isfile(target):
                     op = 'file'
-                    if platform.system() == 'Windows':
+                    if windows:
                         target = os.path.abspath(target)
 
                     if not cont:
@@ -238,14 +241,20 @@ def xiki(view, cont=False):
                     files = ''
                     listing = []
                     try:
-                        listing = os.listdir(target)
+                        if windows and target == '/':
+                            listing = [drive + ':' for drive in util.get_windows_drives()]
+                        else:
+                            listing = os.listdir(target)
                     except OSError as err:
                         dirs = '- ' + err.strerror + '\n'
+
+                    if windows and target.startswith('/'):
+                        target = target.lstrip('/')
 
                     for entry in listing:
                         absolute = os.path.join(target, entry)
                         if os.path.isdir(absolute):
-                            dirs += '+ %s/\n' % entry
+                            dirs += '+ %s%s\n' % (entry, os.sep)
                         else:
                             entry = slash(entry, '\\+$-')
                             files += '%s\n' % entry
@@ -266,7 +275,7 @@ def xiki(view, cont=False):
                         edit.insert(end, '\n' + indent + INDENTATION)
                     spawn(view, indent, cmd, sel)
                 else:
-                    output = communicate(cmd, None, 3)
+                    output = util.communicate(cmd, None, 3)
 
                 if oldcwd:
                     os.chdir(oldcwd)
@@ -341,7 +350,9 @@ def find_tree(view, row):
     for part in reversed(tree):
         if part.startswith('@'):
             new_tree.insert(0, part.strip('@'))
-        elif part.startswith('/'):
+        elif part.startswith(('/', os.sep)):
+            path = part
+        elif re.match(r'^[A-Z]:\\', part):
             path = part
         elif part.startswith('~'):
             path = os.path.expanduser(part)
@@ -351,7 +362,7 @@ def find_tree(view, row):
 
         break
 
-    return line_indent, sign, path, tag, '/'.join(new_tree).replace('//', '/')
+    return line_indent, sign, path, tag, os.sep.join(new_tree).replace(os.sep * 2, os.sep)
 
 # helpers
 
@@ -423,7 +434,7 @@ def get_line(view, row=0):
     return view.substr(line).strip('\r\n')
 
 def dirname(path, tree, tag):
-    path_re = r'^(.+)/%s$' % re.escape(tag)
+    path_re = r'^(.+)%s%s$' % (re.escape(os.sep), re.escape(tag))
     match = re.match(path_re, tree)
     if match:
         return os.path.join(path, match.group(1))
