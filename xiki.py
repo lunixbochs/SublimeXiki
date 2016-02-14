@@ -194,8 +194,10 @@ def xiki(view, cont=False):
 				op = 'command'
 				if path:
 					p = dirname(path, tree, tag)
-
-					oldcwd = os.getcwd()
+					try:
+						oldcwd = os.getcwd()
+					except FileNotFoundError:
+						pass
 					os.chdir(p)
 
 				env = create_environment()
